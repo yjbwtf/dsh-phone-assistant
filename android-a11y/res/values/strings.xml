@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DSH 手机助手</string>
+    <string name="service_name">DSH 无障碍助手</string>
+    <string name="a11y_description">向 DSH 提供屏幕节点读取、文字点击、输入与手势操作能力。</string>
+</resources>
