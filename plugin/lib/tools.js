@@ -1,5 +1,6 @@
 import { truncate, jsonText, sleep } from './util.js'
 import { isAbsolute, resolve } from 'node:path'
+import { ocrImage } from './ocr.js'
 
 const OUTPUT_SCHEMA = {
   type: 'object',
@@ -147,6 +148,15 @@ export function registerTools(ctx, deps) {
       }
       if (action === 'screenshot') {
         const shot = await phone.screenshot(true)
+        let ocrBlock = ''
+        try {
+          const ocr = await ocrImage(shot.path)
+          const lines = (ocr?.lines ?? [])
+            .filter((line) => line.text && Number(line.y) >= 0)
+            .slice(0, 40)
+            .map((line) => `[x=${Math.round(Number(line.x) || 0)}, y=${Math.round(Number(line.y) || 0)}] ${line.text}`)
+          if (lines.length > 0) ocrBlock = `\n本地 OCR 文字坐标（左上角像素）:\n${lines.join('\n').slice(0, 6000)}`
+        } catch {}
         let status = {}
         try { status = await phone.status() } catch {}
         const packageName = String(status.package || '')
@@ -155,13 +165,13 @@ export function registerTools(ctx, deps) {
           try {
             const text = await vision.analyze(shot.latestPath, '简要识别当前手机界面：页面名称、可见文字/按钮、当前状态。只输出要点，不要猜测。')
             if (text) {
-              return `截图已保存到: ${shot.path}\n尺寸: ${shot.width}x${shot.height}\n界面识别（SiliconFlow，已转成文字，不需要 read_image）:\n${text}\n\n只有需要看原图像素、表情或视觉细节时才调用 read_image。`
+              return `截图已保存到: ${shot.path}\n尺寸: ${shot.width}x${shot.height}\n界面识别（SiliconFlow，已转成文字，不需要 read_image）:\n${text}${ocrBlock}\n\n文字坐标来自本地 OCR；图标/按钮精确位置优先用 phone action=ui 的 center。只有需要看原图像素、表情或视觉细节时才调用 read_image。`
             }
           } catch (error) {
-            return `截图已保存到: ${shot.path}\n尺寸: ${shot.width}x${shot.height}\n硅基流动识图失败: ${error.message}\n请调用 read_image 查看。`
+            return `截图已保存到: ${shot.path}\n尺寸: ${shot.width}x${shot.height}\n硅基流动识图失败: ${error.message}${ocrBlock}\n请调用 read_image 查看。`
           }
         }
-        return `截图已保存到: ${shot.path}\n尺寸: ${shot.width}x${shot.height}\n当前是敏感界面（${packageName || '未知'}），未自动上传识图。请调用 read_image 查看，或明确使用 vision。`
+        return `截图已保存到: ${shot.path}\n尺寸: ${shot.width}x${shot.height}\n当前是敏感界面（${packageName || '未知'}），未自动上传识图。${ocrBlock}\n请调用 read_image 查看，或明确使用 vision。`
       }
       if (action === 'vision') {
         const shot = await phone.screenshot(true)
