@@ -1,8 +1,5 @@
-import { truncate, jsonText, sleep, run } from './util.js'
-import { isAbsolute, resolve, dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+import { truncate, jsonText, sleep } from './util.js'
+import { isAbsolute, resolve } from 'node:path'
 
 const OUTPUT_SCHEMA = {
   type: 'object',
@@ -111,18 +108,16 @@ export function registerTools(ctx, deps) {
 
   disposers.push(ctx.tools.register(makeTool(
     'phone',
-    '操作已连接的 Android 手机。微信界面会阻止无障碍节点读取；需要看微信时先用 action=screenshot 获取截图，再用 read_image 查看，然后用 action=tap 按坐标点击；也可以直接用 action=vision 让已配置的视觉模型识别当前屏幕/聊天里的图片、表情和文字；要看手机连续画面用 action=see，它会连续截图、按变化抽帧并拼成一张图。所有坐标基于手机原生分辨率（1080x2340）。',
+    '操作已连接的 Android 手机。微信界面会阻止无障碍节点读取；需要看微信时先用 action=screenshot 获取截图，再用 read_image 查看，然后用 action=tap 按坐标点击；也可以直接用 action=vision 让已配置的视觉模型识别当前屏幕/聊天里的图片、表情和文字。所有坐标基于手机原生分辨率（1080x2340）。',
     {
       properties: {
         action: {
           type: 'string',
           required: true,
-          enum: ['status', 'screenshot', 'vision', 'see', 'ui', 'tap', 'swipe', 'text', 'key', 'launch', 'shell', 'notifications', 'wake', 'scrcpy', 'a11y', 'record_video', 'record_audio', 'media'],
+          enum: ['status', 'screenshot', 'vision', 'ui', 'tap', 'swipe', 'text', 'key', 'launch', 'shell', 'notifications', 'wake', 'scrcpy', 'a11y', 'record_video', 'record_audio', 'media'],
           description: '要执行的操作。',
         },
         prompt: { type: 'string', description: 'vision 的可选问题，例如“识别聊天里最新发来的表情/图片”。' },
-        frames: { type: 'number', description: 'see 的截图帧数，2-6，默认 4。' },
-        interval: { type: 'number', description: 'see 的帧间隔毫秒，默认 550。' },
         x: { type: 'number', description: 'tap 的 x 坐标（像素）。' },
         y: { type: 'number', description: 'tap 的 y 坐标（像素）。' },
         x1: { type: 'number', description: 'swipe 起点 x。' },
@@ -153,23 +148,6 @@ export function registerTools(ctx, deps) {
       if (action === 'screenshot') {
         const shot = await phone.screenshot(true)
         return `截图已保存到: ${shot.path}\n尺寸: ${shot.width}x${shot.height}\n请调用 read_image 查看该路径，再决定点击坐标。`
-      }
-      if (action === 'see') {
-        const count = Math.max(2, Math.min(6, Number(args.frames) || 4))
-        const interval = Math.max(200, Math.min(2500, Number(args.interval) || 550))
-        const shots = []
-        for (let index = 0; index < count; index++) {
-          const shot = await phone.screenshot(true)
-          shots.push(shot.path)
-          if (index < count - 1) await sleep(interval)
-        }
-        const directory = phone.store?.screenshotsDir || resolve(String(store.get('dataDir') || '.'), 'screenshots')
-        const stamp = new Date().toISOString().replace(/[:.]/g, '-')
-        const output = join(directory, `phone-sheet-${stamp}.jpg`)
-        const python = process.env.PYTHON || 'python'
-        const result = await run(python, [join(PACKAGE_ROOT, 'assets', 'tools', 'phone_sheet.py'), output, ...shots], { timeout: 30000 })
-        const parsed = JSON.parse(String(result.stdout || '').trim())
-        return `手机连续画面已拼成一张图: ${parsed.path}\n抓取 ${parsed.frames} 帧，保留 ${parsed.selected.length} 帧，差异分: ${parsed.scores.join(', ')}\n尺寸: ${parsed.width}x${parsed.height}\n请调用 read_image 查看这张图；看手机实时画面就重复调用 action=see。`
       }
       if (action === 'vision') {
         const shot = await phone.screenshot(true)
