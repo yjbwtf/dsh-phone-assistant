@@ -109,7 +109,7 @@ export function registerTools(ctx, deps) {
 
   disposers.push(ctx.tools.register(makeTool(
     'phone',
-    '操作已连接的 Android 手机。微信界面会阻止无障碍节点读取；需要看微信时先用 action=screenshot 获取截图，再用 read_image 查看，然后用 action=tap 按坐标点击；也可以直接用 action=vision 让已配置的视觉模型识别当前屏幕/聊天里的图片、表情和文字。普通界面的 action=screenshot 会自动走硅基流动识图并返回文字，通常不需要 read_image。所有坐标基于手机原生分辨率（1080x2340）。',
+    '操作已连接的 Android 手机。微信界面会阻止无障碍节点读取；需要看微信时先用 action=screenshot 获取截图，再用 read_image 查看，然后用 action=tap 按坐标点击；也可以直接用 action=vision 让已配置的视觉模型识别当前屏幕/聊天里的图片、表情和文字。普通界面的 action=screenshot 优先返回无障碍节点的文字和精确 center，有节点时不走硅基流动；无节点才走本地 OCR + 硅基流动。所有坐标基于手机原生分辨率（1080x2340）。',
     {
       properties: {
         action: {
@@ -148,6 +148,21 @@ export function registerTools(ctx, deps) {
       }
       if (action === 'screenshot') {
         const shot = await phone.screenshot(true)
+        let uiBlock = ''
+        try {
+          const dump = await a11y.dump()
+          const useful = extractUiText(dump)
+            .filter((node) => node.text || node.desc || node.clickable || node.editable)
+            .slice(0, 40)
+          if (useful.length > 0) {
+            uiBlock = useful.map((node) => {
+              const label = node.text || node.desc || node.id || node.cls || ''
+              const center = Array.isArray(node.center) ? `[${node.center[0]}, ${node.center[1]}]` : '[?]'
+              return `${center} ${label}${node.clickable ? ' (可点击)' : ''}`
+            }).join('\n')
+            return `截图已保存到: ${shot.path}\n尺寸: ${shot.width}x${shot.height}\n无障碍节点（精确坐标，优先用 center；已跳过硅基流动）:\npackage: ${dump.package || '未知'} / nodes: ${dump.nodeCount ?? useful.length}\n${uiBlock}\n\n直接 tap center 即可；只有需要看图片像素、表情或视觉细节时才 read_image。`
+          }
+        } catch {}
         let ocrBlock = ''
         try {
           const ocr = await ocrImage(shot.path)
