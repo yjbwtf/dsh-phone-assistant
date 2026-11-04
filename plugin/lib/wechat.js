@@ -98,9 +98,9 @@ export class WeChatAutomation {
   }
 
   async restoreIme() {
+    if (!this.store.get('restoreIme')) return
     if (!this.imePrepared) return
     this.imePrepared = false
-    if (!this.store.get('restoreIme')) return
     if (!this.originalIme || this.originalIme === ADB_KEYBOARD) {
       try {
         const list = await this.phone.shell('ime list -s', { allowFail: true })
