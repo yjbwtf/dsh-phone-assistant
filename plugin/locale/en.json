@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Phone Bridge",
+    "description": "Controls an Android phone over ADB and accessibility, and bridges WeChat to a DSH agent."
+  }
+}
