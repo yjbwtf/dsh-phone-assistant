@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1016">
+  <title>DSH 手机助手</title>
+  <link rel="icon" href="/icon.svg">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <img class="brand-icon" src="/icon.svg" alt="">
+        <div class="brand-text">
+          <strong>DSH 手机助手</strong>
+          <span>PHONE BRIDGE</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-tab="console"><span>▣</span>控制台</button>
+        <button class="nav-item" data-tab="wechat"><span>◉</span>微信桥<i id="bridgeDot" class="dot"></i></button>
+        <button class="nav-item" data-tab="agent"><span>✦</span>Agent</button>
+        <button class="nav-item" data-tab="memory"><span>▤</span>记忆</button>
+        <button class="nav-item" data-tab="skills"><span>⌘</span>技能</button>
+        <button class="nav-item" data-tab="persona"><span>☺</span>人格</button>
+        <button class="nav-item" data-tab="settings"><span>⚙</span>设置</button>
+      </nav>
+
+      <div class="side-spacer"></div>
+
+      <div class="side-status">
+        <div class="mini-row"><span>设备</span><b id="sideDevice">检测中</b></div>
+        <div class="mini-row"><span>微信桥</span><b id="sideBridge">未启动</b></div>
+        <div class="mini-row"><span>会话</span><b id="sideSession" class="mono">—</b></div>
+      </div>
+      <div class="side-foot">蓝色大肥鱼 · 本地控制台</div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="title-wrap">
+          <h1 id="pageTitle">控制台</h1>
+          <p id="pageSub">ADB + 无障碍 + 读图回退，操作手机并和微信里的鱼鱼对话。</p>
+        </div>
+        <div class="top-actions">
+          <span id="connPill" class="pill warn">连接中</span>
+          <button id="btnRepair" class="btn ghost">修复连接</button>
+          <button id="btnOpenApp" class="btn ghost">新窗口</button>
+        </div>
+      </header>
+
+      <div id="toast" class="toast"></div>
+
+      <section class="tab-panel active" data-panel="console">
+        <div class="console-grid">
+          <article class="card phone-card">
+            <div class="card-head">
+              <h2>手机屏幕</h2>
+              <span id="phoneMeta" class="muted">—</span>
+            </div>
+            <div class="phone-shell">
+              <div class="phone-screen">
+                <img id="phoneImg" alt="手机屏幕" draggable="false">
+                <canvas id="nativeMirror" class="native-mirror" width="1080" height="2340" hidden></canvas>
+                <div id="phoneCover" class="phone-cover">正在读取屏幕…</div>
+              </div>
+            </div>
+            <div class="phone-hint">scrcpy 实时镜像 · 点击画面可直接操作手机</div>
+            <div class="phone-actions">
+              <button class="btn" data-phone-action="wake">唤醒</button>
+              <button class="btn" data-phone-action="home">主页</button>
+              <button class="btn" data-phone-action="back">返回</button>
+              <button class="btn" data-phone-action="recents">后台</button>
+              <button class="btn" data-phone-action="screenshot">截屏</button>
+            </div>
+          </article>
+
+          <div class="console-right">
+            <article class="card">
+              <div class="card-head">
+                <h2>设备状态</h2>
+                <span class="muted" id="deviceChecked">—</span>
+              </div>
+              <div class="device-grid">
+                <div class="stat"><label>型号</label><b id="dModel">—</b></div>
+                <div class="stat"><label>系统</label><b id="dAndroid">—</b></div>
+                <div class="stat"><label>电量</label><b id="dBattery">—</b></div>
+                <div class="stat"><label>屏幕</label><b id="dScreen">—</b></div>
+              </div>
+              <div class="focus-line"><span>前台</span><code id="dFocus">—</code></div>
+              <div class="sub-grid">
+                <div><label>无障碍</label><b id="dA11y">检测中</b></div>
+                <div><label>截图</label><b id="dShot">—</b></div>
+              </div>
+            </article>
+
+            <article class="card">
+              <div class="card-head">
+                <h2>微信快捷操作</h2>
+                <span id="wechatQuickState" class="muted">未启动</span>
+              </div>
+              <div class="quick-target">
+                <input id="quickTarget" class="input" placeholder="联系人 / 群名">
+                <button id="btnOpenChat" class="btn">打开聊天</button>
+              </div>
+              <div class="quick-send">
+                <input id="quickText" class="input" placeholder="发一条微信消息…">
+                <button id="btnQuickSend" class="btn accent">发送</button>
+              </div>
+              <p class="fineprint">发送会自动处理中文输入；微信界面无法读取无障碍节点，截图 + 读图由 Agent 负责。</p>
+            </article>
+
+            <article class="card log-card">
+              <div class="card-head">
+                <h2>运行日志</h2>
+                <button id="btnClearLog" class="btn tiny ghost">清空</button>
+              </div>
+              <div id="logFeed" class="log-feed"></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="wechat">
+        <div class="wechat-grid">
+          <article class="card bridge-card">
+            <div class="card-head">
+              <h2>微信桥</h2>
+              <span id="bridgeState" class="pill warn">未启动</span>
+            </div>
+            <div class="bridge-config">
+              <label class="field">
+                <span>监听聊天（可添加多个联系人或群）</span>
+                <div id="targetChips" class="chips"></div>
+              </label>
+              <div class="quick-target">
+                <input id="newTargetInput" class="input" placeholder="添加联系人或群名…">
+                <button id="btnAddTarget" class="btn">添加</button>
+              </div>
+              <label class="switch-row">
+                <span>自动监听新消息并交给 Agent</span>
+                <input id="bridgeToggle" type="checkbox" class="switch">
+              </label>
+              <div class="bridge-actions">
+                <button id="btnBridgeRepair" class="btn ghost">检测无障碍</button>
+              </div>
+            </div>
+            <div class="feed-head"><h3>微信消息</h3><span id="wechatFeedMeta" class="muted">—</span></div>
+            <div id="wechatFeed" class="feed"></div>
+            <div class="composer">
+              <input id="wechatCompose" class="input" placeholder="以本机身份给当前聊天发消息…">
+              <button id="btnWechatCompose" class="btn accent">发送</button>
+            </div>
+            <div class="fineprint" id="wechatSendHint">发送到：—</div>
+          </article>
+
+          <article class="card chat-card">
+            <div class="card-head">
+              <h2>鱼鱼 · Agent</h2>
+              <span id="agentState" class="muted">未连接</span>
+            </div>
+            <div id="agentFeed" class="feed agent-feed"></div>
+            <div class="composer">
+              <input id="agentCompose" class="input" placeholder="直接对 Agent 说…">
+              <button id="btnAgentCompose" class="btn accent">发送</button>
+            </div>
+          </article>
+
+          <article class="card span2">
+            <div class="card-head"><h2>桥接与回复设置</h2><span class="muted">目标、权限与回复行为</span></div>
+            <div id="wechatSettingsFields"></div>
+            <div class="form-actions"><button id="btnSaveWechatSettings" class="btn accent">保存微信设置</button></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="agent">
+        <div class="agent-grid">
+          <article class="card chat-card tall">
+            <div class="card-head">
+              <h2>与蓝色大肥鱼对话</h2>
+              <span id="agentState2" class="muted">未连接</span>
+            </div>
+            <div id="agentFeed2" class="feed agent-feed"></div>
+            <div class="composer">
+              <input id="agentCompose2" class="input" placeholder="让我操作手机或电脑…">
+              <button id="btnAgentCompose2" class="btn accent">发送</button>
+            </div>
+          </article>
+          <aside class="agent-side">
+            <article class="card">
+              <div class="card-head"><h2>会话</h2><button id="btnResetSession" class="btn tiny ghost">重开</button></div>
+              <div class="kv"><label>Session</label><code id="sessionId" class="mono">—</code></div>
+              <div class="kv"><label>状态</label><b id="sessionReady">—</b></div>
+              <div class="kv"><label>工作目录</label><code id="sessionCwd" class="mono">—</code></div>
+              <p class="fineprint">这个会话会出现在 DSH 侧栏的「手机助手」工作区。Agent 同时拥有电脑工具和手机工具。</p>
+            </article>
+            <article class="card">
+              <div class="card-head"><h2>工具活动</h2></div>
+              <div id="toolFeed" class="tool-feed"></div>
+            </article>
+          </aside>
+
+          <article class="card span2">
+            <div class="card-head"><h2>任务通知与模型</h2><span class="muted">进度、视觉与 Embedding</span></div>
+            <div id="agentSettingsFields"></div>
+            <div class="form-actions"><button id="btnSaveAgentSettings" class="btn accent">保存 Agent 设置</button></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="memory">
+        <div class="memory-grid">
+          <article class="card">
+            <div class="card-head">
+              <h2>长期记忆</h2>
+              <span id="memoryStats" class="muted">—</span>
+            </div>
+            <div class="quick-target">
+              <input id="memorySearch" class="input" placeholder="搜索 App 操作方式、偏好、事实…">
+              <button id="btnMemorySearch" class="btn">搜索</button>
+            </div>
+            <p class="fineprint">检索只做关键词/子串匹配，不调用大模型；只有命中的少量条目会附在 Agent 消息末尾。操作完成后会自动记录精简步骤。</p>
+            <div id="memoryList" class="memory-list"></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><h2>手动添加</h2><span class="muted">App 操作 / 事实</span></div>
+            <label class="field"><span>标题</span><input id="memoryTitle" class="input" placeholder="例如：微信：发语音"></label>
+            <label class="field"><span>应用包名（可选）</span><input id="memoryApp" class="input" placeholder="com.tencent.mm"></label>
+            <label class="field"><span>正文 / 步骤</span><textarea id="memoryBody" class="input textarea" rows="8" placeholder="1. 打开…&#10;2. 点击…"></textarea></label>
+            <label class="field"><span>关键词（空格分隔）</span><input id="memoryKeywords" class="input" placeholder="微信 语音 按住 说话"></label>
+            <div class="form-actions"><button id="btnMemorySave" class="btn accent">保存记忆</button></div>
+          </article>
+
+          <article class="card span2">
+            <div class="card-head"><h2>记忆设置</h2><span class="muted">检索、自动学习与容量</span></div>
+            <div id="memorySettingsFields"></div>
+            <div class="form-actions"><button id="btnSaveMemorySettings" class="btn accent">保存记忆设置</button></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="skills">
+        <div id="skillsPanel" class="settings-grid"></div>
+      </section>
+
+      <section class="tab-panel" data-panel="persona">
+        <div id="personaPanel" class="settings-grid"></div>
+      </section>
+
+      <section class="tab-panel" data-panel="settings">
+        <div class="settings-grid">
+          <article class="card">
+            <div class="card-head"><h2>连接</h2><span class="muted">路径与设备</span></div>
+            <label class="field"><span>ADB 路径</span><input id="setAdb" class="input"></label>
+            <label class="field"><span>scrcpy 路径</span><input id="setScrcpy" class="input"></label>
+            <label class="field"><span>设备序列号（留空自动）</span><input id="setSerial" class="input"></label>
+            <label class="field"><span>锁屏密码（仅本地保存）</span><input id="setPin" class="input" type="password" placeholder="留空保持不变"></label>
+            <label class="field"><span>本地端口</span><input id="setPort" class="input" type="number" min="1024" max="65535"></label>
+            <div class="form-actions"><button id="btnSaveSettings" class="btn accent">保存设置</button><button id="btnRepair2" class="btn ghost">一键修复</button></div>
+          </article>
+
+          <article class="card">
+            <div class="card-head"><h2>人格</h2><span class="muted">可随时改</span></div>
+            <label class="field"><span>微信目标（每行一个，也可在微信桥页添加）</span><textarea id="setTargets" class="input textarea" rows="4"></textarea></label>
+            <label class="field"><span>管理员微信名（每行一个）</span><textarea id="setAdmins" class="input textarea" rows="3"></textarea></label>
+            <label class="switch-row"><span>仅管理员消息可指挥 Agent（安全）</span><input id="setAdminOnly" type="checkbox" class="switch"></label>
+            <label class="switch-row"><span>群消息只有 @ 我时才交给 Agent</span><input id="setGroupAtOnly" type="checkbox" class="switch"></label>
+            <label class="switch-row"><span>优先从微信首页第一行进入主聊天</span><input id="setDirectChat" type="checkbox" class="switch"></label>
+            <label class="field"><span>人格提示词</span><textarea id="setPersona" class="input textarea" rows="10"></textarea></label>
+            <label class="switch-row"><span>把 Agent 回复自动发回微信</span><input id="setRelay" type="checkbox" class="switch"></label>
+            <label class="switch-row"><span>发送后恢复原输入法</span><input id="setRestoreIme" type="checkbox" class="switch"></label>
+            <label class="switch-row"><span>桥接回复后回到桌面（保证新消息通知到达）</span><input id="setHomeAfterReply" type="checkbox" class="switch"></label>
+            <label class="switch-row"><span>自动检索长期记忆（仅命中时注入）</span><input id="setMemoryRecall" type="checkbox" class="switch"></label>
+            <label class="switch-row"><span>操作成功后自动写成 Skill</span><input id="setAutoLearn" type="checkbox" class="switch"></label>
+            <label class="field"><span>记忆文件上限（GB，默认 5）</span><input id="setMemoryMaxGB" class="input" type="number" min="0.1" step="0.1"></label>
+            <label class="field"><span>截图缓存上限（GB，默认 1）</span><input id="setScreenshotMaxGB" class="input" type="number" min="0.1" step="0.1"></label>
+            <label class="field"><span>手机媒体缓存上限（GB，默认 2）</span><input id="setPhoneCacheMaxGB" class="input" type="number" min="0.1" step="0.1"></label>
+            <label class="switch-row"><span>任务进度和结束通知发到微信</span><input id="setNotifyProgress" type="checkbox" class="switch"></label>
+            <label class="field"><span>进度通知间隔（分钟）</span><input id="setProgressInterval" class="input" type="number" min="1" step="1"></label>
+            <label class="switch-row"><span>我的开发任务也发进度/结束通知</span><input id="setNotifyMain" type="checkbox" class="switch"></label>
+            <label class="field"><span>主任务最短上报时长（分钟）</span><input id="setMainMin" class="input" type="number" min="1" step="1"></label>
+            <label class="field"><span>视觉打标 API Base（OpenAI 兼容，可留空）</span><input id="setVisionBase" class="input" placeholder="https://api.example.com/v1"></label>
+            <label class="field"><span>视觉模型</span><input id="setVisionModel" class="input" placeholder="gpt-4o-mini"></label>
+            <label class="field"><span>视觉 API Key（仅本地保存）</span><input id="setVisionKey" class="input" type="password" placeholder="留空保持不变"></label>
+            <label class="field"><span>Embedding API Base（OpenAI 兼容，可留空；留空用本地向量）</span><input id="setEmbeddingBase" class="input" placeholder="https://api.example.com/v1"></label>
+            <label class="field"><span>Embedding 模型</span><input id="setEmbeddingModel" class="input" placeholder="text-embedding-3-small"></label>
+            <label class="field"><span>Embedding API Key（仅本地保存）</span><input id="setEmbeddingKey" class="input" type="password" placeholder="留空保持不变"></label>
+            <label class="switch-row"><span>启动时打开控制台窗口</span><input id="setOpenOnStart" type="checkbox" class="switch"></label>
+            <div class="form-actions"><button id="btnSavePersona" class="btn accent">保存人格</button></div>
+          </article>
+
+          <article class="card span2">
+            <div class="card-head"><h2>技能（Skills）</h2><span class="muted">可手动增删改，Agent 按需调用</span></div>
+            <div class="quick-target">
+              <button id="btnSkillNew" class="btn accent">新建技能</button>
+              <button id="btnSkillRefresh" class="btn ghost">刷新</button>
+              <span id="skillCount" class="muted"></span>
+            </div>
+            <div id="skillList" class="memory-list"></div>
+            <div id="skillEditor" class="skill-editor" hidden>
+              <div class="card-head" style="margin-top:14px"><h3 id="skillEditorTitle">编辑技能</h3><button id="btnSkillDelete" class="btn ghost">删除</button></div>
+              <label class="field"><span>技能名（应用·动作）</span><input id="skillName" class="input" placeholder="网易云音乐·播放"></label>
+              <label class="field"><span>应用包名</span><input id="skillApp" class="input" placeholder="com.netease.cloudmusic"></label>
+              <label class="field"><span>关键词（空格分隔）</span><input id="skillKeywords" class="input" placeholder="网易云 音乐 播放 搜索"></label>
+              <label class="field"><span>参数名（逗号分隔，步骤里用 {{参数}}）</span><input id="skillParams" class="input" placeholder="text"></label>
+              <label class="field"><span>步骤 JSON</span><textarea id="skillSteps" class="input textarea" rows="9" placeholder='[{"action":"launch","target":"com.netease.cloudmusic"},{"action":"tap","x":0.88,"y":0.07},{"action":"text","text":"{{text}}"}]'></textarea></label>
+              <div class="form-actions"><button id="btnSkillSave" class="btn accent">保存技能</button><button id="btnSkillClose" class="btn ghost">收起</button></div>
+            </div>
+            <p class="fineprint">点击/滑动坐标可用 0-1 比例；text 支持 {{参数}}。成功操作也会自动写成 Skill，可在这里修改或删除。</p>
+          </article>
+
+          <article class="card span2">
+            <div class="card-head"><h2>存储与启动</h2><span class="muted">缓存上限与启动行为</span></div>
+            <div id="storageSettingsFields"></div>
+            <div class="form-actions"><button id="btnSaveStorageSettings" class="btn accent">保存存储设置</button></div>
+          </article>
+
+          <article class="card span2">
+            <div class="card-head"><h2>组件</h2><span class="muted">本地依赖</span></div>
+            <div class="component-grid">
+              <div><label>无障碍助手</label><b id="compA11y">—</b></div>
+              <div><label>ADBKeyboard</label><b id="compIme">—</b></div>
+              <div><label>scrcpy</label><b id="compScrcpy">—</b></div>
+              <div><label>数据目录</label><code id="compData" class="mono">—</code></div>
+            </div>
+            <p class="fineprint">无障碍 APK 会通过 ADB 安装；微信界面本身拒绝无障碍节点，因此微信操作采用“固定坐标 + 截图读图回退”。</p>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
