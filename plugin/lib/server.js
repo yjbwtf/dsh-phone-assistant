@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
-import { clamp, jsonText, sleep, truncate } from './util.js'
+import { clamp, jsonText, sleep, truncate, run } from './util.js'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const PACKAGE_ROOT = resolve(HERE, '..')
@@ -170,6 +170,7 @@ export class ControlServer {
     const url = new URL(req.url ?? '/', `http://127.0.0.1:${this.port || 18642}`)
     const path = url.pathname
     if (path === '/api/events') return this.handleEvents(req, res)
+    if (path === '/api/phone.mjpeg') return this.handlePhoneMjpeg(req, res)
     if (path === '/api/state') return this.sendJson(res, 200, await this.state())
     if (path === '/api/screen') {
       const fresh = url.searchParams.get('fresh') === '1'
@@ -189,6 +190,46 @@ export class ControlServer {
     if (path.startsWith('/api/')) return await this.handleApi(req, res, path, url)
     if (req.method !== 'GET' && req.method !== 'HEAD') return this.sendText(res, 405, 'method not allowed')
     return this.serveStatic(res, path)
+  }
+
+  async handlePhoneMjpeg(req, res) {
+    const boundary = 'phoneframe'
+    res.writeHead(200, {
+      'content-type': `multipart/x-mixed-replace; boundary=${boundary}`,
+      'cache-control': 'no-store',
+      connection: 'keep-alive',
+      'x-accel-buffering': 'no',
+    })
+    const directory = this.phone.store?.screenshotsDir || resolve(String(this.store.get('dataDir') || '.'), 'screenshots')
+    const output = join(directory, 'phone-mjpeg.jpg')
+    const script = join(PACKAGE_ROOT, 'assets', 'tools', 'phone_frame.py')
+    const python = process.env.PYTHON || 'python'
+    let active = true
+    req.on('close', () => { active = false })
+    const writeChunk = (chunk) => new Promise((resolvePromise) => {
+      if (!active) return resolvePromise(false)
+      try {
+        if (res.write(chunk)) return resolvePromise(true)
+        res.once('drain', () => resolvePromise(active))
+      } catch {
+        resolvePromise(false)
+      }
+    })
+    while (active) {
+      try {
+        const shot = await this.phone.screenshot(true)
+        await run(python, [script, shot.path, output], { timeout: 12000 })
+        const jpeg = readFileSync(output)
+        if (!await writeChunk(`--${boundary}\r\nContent-Type: image/jpeg\r\nContent-Length: ${jpeg.length}\r\n\r\n`)) break
+        if (!await writeChunk(jpeg)) break
+        if (!await writeChunk('\r\n')) break
+      } catch (error) {
+        this.bus.log('warn', `手机 MJPEG 帧失败: ${error.message}`)
+        if (!await writeChunk(`--${boundary}\r\nContent-Type: text/plain\r\n\r\n${error.message}\r\n`)) break
+      }
+      await sleep(180)
+    }
+    try { res.end() } catch {}
   }
 
   serveStatic(res, path) {
