@@ -92,7 +92,7 @@ export class SettingsStore {
       scrcpyWindow: false,
       bridgeEnabled: false,
       relayReplies: true,
-      restoreIme: true,
+      restoreIme: false,
       homeAfterReply: true,
       openOnStart: false,
       persona: DEFAULT_PERSONA,
