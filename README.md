@@ -37,6 +37,7 @@ Windows 上的本地 Android 手机助手：通过 **ADB + 无障碍服务 + 截
 - 插件：[docs/INSTALL_PLUGIN.md](docs/INSTALL_PLUGIN.md)
 - 完整部署：[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - 故障排查：[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+- 可选插件：[docs/OPTIONAL_PLUGINS.md](docs/OPTIONAL_PLUGINS.md)
 
 ## 快速开始
 
