@@ -14,6 +14,8 @@ WebView2 Runtime 不捆绑。Windows 11 通常自带；Windows 10 如果缺失�
 
 <https://developer.microsoft.com/microsoft-edge/webview2/>
 
+面板启动时如果缺少 WebView2 会直接报错；安装器不会自动下载。
+
 ## 安装
 
 1. 从 Release 下载 `DSH-Phone-Assistant-Setup-0.1.0.exe`。
@@ -30,8 +32,7 @@ WebView2 Runtime 不捆绑。Windows 11 通常自带；Windows 10 如果缺失�
    ```
 
    不请求管理员权限。
-4. 安装器会检查 WebView2；缺失会提示先安装。
-5. 安装完成后勾选启动，或从开始菜单打开「DSH 手机助手」。
+4. 安装完成后勾选启动，或从开始菜单打开「DSH 手机助手」。
 
 > 安装包目前没有商业代码签名证书，Windows SmartScreen 可能提示“未知发布者”。请确认哈希与 Release 一致后再运行。
 
