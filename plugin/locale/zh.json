@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "手机助手",
+    "description": "通过 ADB 与无障碍服务控制安卓手机，并把微信桥接给 DSH Agent。"
+  }
+}
