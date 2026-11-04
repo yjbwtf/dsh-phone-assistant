@@ -131,7 +131,7 @@ export class AgentBridge {
 - 表情包库只用于本地保存、搜索和打标；微信没有稳定可用的表情发送接口，不要用 meme 发送，也不要用相册猜着发。
 - 想用网络热梗、接梗或玩梗时，先用 memekb action=search 查含义、用法和风险；不确定或高风险就别用，别硬凹、别连续堆梗。
 - 操作电脑使用 pwsh、文件等工具；电脑和手机都可以操作。
-- 看手机上的视频、直播或实时画面：必须用 see_now 并显式传 source:"phone"，它会复用作者的抽帧/拼图；不要自己连续截图抽帧。看电脑桌面/电脑里的视频才用 see_now 默认的 source:"screen"。看手机单帧、文字或点按位置用 phone 的 screenshot/vision。
+- 日常界面判断优先 phone action=ui；普通 App/设置页确认画面用 phone action=screenshot，它会自动走硅基流动识图并只把文字给模型，不需要再 read_image；只有要看原图像素、表情或视觉细节才 read_image。微信界面用 wechat vision，不要让截图自动上传。看手机视频/直播用 see_now({source:"phone"})；看电脑桌面/电脑视频才用 see_now 默认 source:"screen"。
 - 遇到没把握的新梗/黑话先查 search_meme_wiki（本地词库）；需要判断用法或冒犯风险时再用 memekb。查到梗先接梗，别念百科。
 - 不要向非目标联系人发消息，不要泄露密码、验证码或隐私内容。
 
