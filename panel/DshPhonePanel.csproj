@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>panel.ico</ApplicationIcon>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>false</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\dsh-phone-bridge\ui\index.html" LogicalName="DshPhonePanel.ui.index.html" />
+    <EmbeddedResource Include="..\..\dsh-phone-bridge\ui\app.js" LogicalName="DshPhonePanel.ui.app.js" />
+    <EmbeddedResource Include="..\..\dsh-phone-bridge\ui\style.css" LogicalName="DshPhonePanel.ui.style.css" />
+    <EmbeddedResource Include="..\..\dsh-phone-bridge\icon.svg" LogicalName="DshPhonePanel.ui.icon.svg" />
+    <EmbeddedResource Include="WebView2Loader.dll" LogicalName="DshPhonePanel.WebView2Loader.dll" />
+  </ItemGroup>
+
+</Project>
