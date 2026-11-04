@@ -171,6 +171,7 @@ export class ControlServer {
     const path = url.pathname
     if (path === '/api/events') return this.handleEvents(req, res)
     if (path === '/api/phone.mjpeg') return this.handlePhoneMjpeg(req, res)
+    if (path === '/api/phone.raw') return this.handlePhoneRaw(req, res)
     if (path === '/api/state') return this.sendJson(res, 200, await this.state())
     if (path === '/api/screen') {
       const fresh = url.searchParams.get('fresh') === '1'
@@ -192,6 +193,42 @@ export class ControlServer {
     return this.serveStatic(res, path)
   }
 
+  async handlePhoneRaw(req, res) {
+    res.writeHead(200, {
+      'content-type': 'application/octet-stream',
+      'cache-control': 'no-store',
+      connection: 'keep-alive',
+      'x-accel-buffering': 'no',
+    })
+    const directory = this.phone.store?.screenshotsDir || resolve(String(this.store.get('dataDir') || '.'), 'screenshots')
+    const output = join(directory, 'phone-raw.rgb')
+    const script = join(PACKAGE_ROOT, 'assets', 'tools', 'phone_raw.py')
+    const python = process.env.PYTHON || 'python'
+    let active = true
+    res.on('close', () => { active = false })
+    const writeChunk = (chunk) => new Promise((resolvePromise) => {
+      if (!active) return resolvePromise(false)
+      try {
+        if (res.write(chunk)) return resolvePromise(true)
+        res.once('drain', () => resolvePromise(active))
+      } catch {
+        resolvePromise(false)
+      }
+    })
+    while (active) {
+      try {
+        const shot = await this.phone.screenshot(true)
+        await run(python, [script, shot.path, output], { timeout: 15000 })
+        if (!await writeChunk(readFileSync(output))) break
+      } catch (error) {
+        this.bus.log('warn', `手机 RAW 帧失败: ${error.message}`)
+        break
+      }
+      await sleep(120)
+    }
+    try { res.end() } catch {}
+  }
+
   async handlePhoneMjpeg(req, res) {
     const boundary = 'phoneframe'
     res.writeHead(200, {
@@ -205,7 +242,7 @@ export class ControlServer {
     const script = join(PACKAGE_ROOT, 'assets', 'tools', 'phone_frame.py')
     const python = process.env.PYTHON || 'python'
     let active = true
-    req.on('close', () => { active = false })
+    res.on('close', () => { active = false })
     const writeChunk = (chunk) => new Promise((resolvePromise) => {
       if (!active) return resolvePromise(false)
       try {
