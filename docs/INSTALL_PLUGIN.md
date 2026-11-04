@@ -58,6 +58,8 @@ $dsh = "C:\Program Files\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd"
 
 目标聊天名必须和微信界面显示一致。发送前会做聊天标题 OCR 校验；校验失败会抛错并拒绝发送。
 
+微信桥启动时会自动启用并切换到 **ADBKeyboard**，默认不再切回原输入法；这样中文输入不会在“原输入法/ADBKeyboard”之间来回切。要恢复原输入法，手动在手机设置里切换，或把面板设置中的“发送后恢复原输入法”打开。
+
 ## Android 组件
 
 插件包内含：
