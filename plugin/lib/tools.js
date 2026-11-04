@@ -108,7 +108,7 @@ export function registerTools(ctx, deps) {
 
   disposers.push(ctx.tools.register(makeTool(
     'phone',
-    '操作已连接的 Android 手机。微信界面会阻止无障碍节点读取；需要看微信时先用 action=screenshot 获取截图，再用 read_image 查看，然后用 action=tap 按坐标点击；也可以直接用 action=vision 让已配置的视觉模型识别当前屏幕/聊天里的图片、表情和文字。所有坐标基于手机原生分辨率（1080x2340）。',
+    '操作已连接的 Android 手机。微信界面会阻止无障碍节点读取；需要看微信时先用 action=screenshot 获取截图，再用 read_image 查看，然后用 action=tap 按坐标点击；也可以直接用 action=vision 让已配置的视觉模型识别当前屏幕/聊天里的图片、表情和文字。普通界面的 action=screenshot 会自动走硅基流动识图并返回文字，通常不需要 read_image。所有坐标基于手机原生分辨率（1080x2340）。',
     {
       properties: {
         action: {
@@ -147,7 +147,21 @@ export function registerTools(ctx, deps) {
       }
       if (action === 'screenshot') {
         const shot = await phone.screenshot(true)
-        return `截图已保存到: ${shot.path}\n尺寸: ${shot.width}x${shot.height}\n请调用 read_image 查看该路径，再决定点击坐标。`
+        let status = {}
+        try { status = await phone.status() } catch {}
+        const packageName = String(status.package || '')
+        const sensitive = /com\.tencent\.mm|alipay|bank|wallet|password|authenticator/i.test(packageName)
+        if (!sensitive) {
+          try {
+            const text = await vision.analyze(shot.latestPath, '简要识别当前手机界面：页面名称、可见文字/按钮、当前状态。只输出要点，不要猜测。')
+            if (text) {
+              return `截图已保存到: ${shot.path}\n尺寸: ${shot.width}x${shot.height}\n界面识别（SiliconFlow，已转成文字，不需要 read_image）:\n${text}\n\n只有需要看原图像素、表情或视觉细节时才调用 read_image。`
+            }
+          } catch (error) {
+            return `截图已保存到: ${shot.path}\n尺寸: ${shot.width}x${shot.height}\n硅基流动识图失败: ${error.message}\n请调用 read_image 查看。`
+          }
+        }
+        return `截图已保存到: ${shot.path}\n尺寸: ${shot.width}x${shot.height}\n当前是敏感界面（${packageName || '未知'}），未自动上传识图。请调用 read_image 查看，或明确使用 vision。`
       }
       if (action === 'vision') {
         const shot = await phone.screenshot(true)
