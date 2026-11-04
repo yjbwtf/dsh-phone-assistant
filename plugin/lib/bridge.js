@@ -62,6 +62,18 @@ export class WeChatBridge {
     return /有人@我|@我|@你|@所有人|\[有人@我\]/u.test(blob)
   }
 
+  async ensureAdbIme() {
+    try {
+      await this.wechat.ensureTools()
+      await this.wechat.ensureIme()
+      this.bus.log('info', '已切换 ADBKeyboard 输入法')
+      return true
+    } catch (error) {
+      this.bus.log('warn', `切换 ADBKeyboard 失败: ${error.message}`)
+      return false
+    }
+  }
+
   async start() {
     if (this.enabled) return this.status()
     this.enabled = true
@@ -78,6 +90,7 @@ export class WeChatBridge {
       this.lastError = error.message
       this.bus.log('warn', `无障碍服务未就绪，仍在后台重试: ${error.message}`)
     }
+    await this.ensureAdbIme()
     this.loop(token).catch((error) => {
       this.lastError = error.message
       this.bus.log('error', `微信桥循环异常: ${error.message}`)
