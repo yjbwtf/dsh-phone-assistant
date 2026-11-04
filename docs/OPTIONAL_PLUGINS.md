@@ -37,7 +37,7 @@ see_now({action:"stop"})    # 停止
 
 `say` 只显示在电脑悬浮窗，不会自动发微信；微信回复仍由手机助手桥接发送。
 
-手机端对应能力：不依赖 see-now，手机助手提供了 `phone action=see`，连续截图、按变化抽帧并拼成一张图，模型再用 `read_image` 看。两者一个看电脑桌面，一个看手机屏幕。
+手机端对应能力：手机助手在 `http://127.0.0.1:18642/api/phone.mjpeg` 提供手机 MJPEG，see-now 的 `source:"phone"` 直接接入这条流，复用作者自己的变化评分、抽帧和拼图逻辑。看手机单帧/文字/坐标仍用 `phone action=screenshot/vision`。
 
 
 ## dsh-memewiki（梗百科）
